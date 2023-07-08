@@ -30,18 +30,24 @@ import re
 
 class RAG_QA_Model:
     def __init__(self) -> None:
-        _ = load_dotenv(find_dotenv())  # read local .env file
-
+        _ = load_dotenv(find_dotenv())
         self.__db = None
         self.__documents = []
 
-    def load_document(self, selected_document: str, vector_storage_type: str):
+    def load_document(
+        self,
+        selected_document: str,
+        vector_storage_type: str,
+        openai_key: str = os.getenv("OPENAI_API_KEY"),
+    ):
         data_path = Path("./files").resolve()
         with open(Path("./document_config.json").resolve(), "r") as f:
             document_config = json.load(f)
         if selected_document in document_config:
             file_prefix = document_config[selected_document]["document"]
             path_to_file = Path(data_path, file_prefix).as_posix()
+
+        openai.api_key = openai_key
 
         # Load the text document
         loader = TextLoader(path_to_file, encoding="utf8")
@@ -116,11 +122,13 @@ class RAG_QA_Model:
     def total_chunks(self):
         return len(self.__documents)
 
-    @property
-    def openai_api_key(openaikey):
-        # =os.getenv("OPENAI_API_KEY")
-        openai.api_key = openaikey
-        return openaikey
+    # @property
+    # def openai_api_key(self, openaikey):
+    #     # if openaikey != None:
+    #     #     openai.api_key = openaikey
+    #     # else:
+    #     #     openai.api_key = os.getenv("OPENAI_API_KEY")
+    #     openai.api_key = openaikey
 
     @property
     def prompt_template(self):

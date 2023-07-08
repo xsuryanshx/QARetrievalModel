@@ -3,6 +3,7 @@ from rag_qa_model import RAG_QA_Model
 from pathlib import Path
 import json
 import pandas as pd
+import os
 
 st.set_page_config(page_title="QA Model", page_icon="🔎", layout="wide")
 
@@ -12,10 +13,11 @@ def initialize():
         st.session_state.engine = RAG_QA_Model()
     if "vector_storage_type" not in st.session_state:
         st.session_state.vector_storage_type = "Normal"
+    if "openai_key" not in st.session_state:
+        st.session_state.openai_key = "Input your API key"
     if "selected_document" not in st.session_state:
         st.session_state.selected_document = "Knowledge Document - Pan Card"
         load_documents()
-        load_open_ai_key()
 
 
 def load_documents():
@@ -24,20 +26,13 @@ def load_documents():
             f"Loading {st.session_state.selected_document} into {st.session_state.vector_storage_type}..."
         ):
             st.session_state.engine.load_document(
-                st.session_state.selected_document, st.session_state.vector_storage_type
+                st.session_state.selected_document,
+                st.session_state.vector_storage_type,
+                st.session_state.openai_key,
             )
             st.session_state.total_pages_in_document = (
                 st.session_state.engine.total_chunks
             )
-
-
-def load_open_ai_key():
-    with st.sidebar:
-        openaikey = st.text_input(
-            "OpenAI API Key", key="file_qa_api_key", type="password"
-        )
-        st.session_state.engine.open_ai_key(openaikey)
-
 
 def retrieve_documents():
     with open(Path("./document_config.json").resolve(), "r") as f:
@@ -50,7 +45,7 @@ def convert_df(df: pd.DataFrame):
     return df.to_csv(index=False).encode("utf-8")
 
 
-def process_questions(
+def process_question_as_text(
     engine: RAG_QA_Model,
     question: str,
     number_of_documents_to_review: int,
@@ -94,17 +89,6 @@ def process_questions(
     )
 
 
-def process_question_as_text(
-    engine: RAG_QA_Model,
-    question_input: str,
-    number_of_documents_to_review: int,
-    temperature: float,
-):
-    process_questions(
-        engine, question_input, number_of_documents_to_review, temperature, max_tokens
-    )
-
-
 def show_df_as_table(df: pd.DataFrame):
     th_props = [
         ("text-align", "center"),
@@ -130,8 +114,13 @@ def show_df_as_table(df: pd.DataFrame):
 
 def main():
     st.title("PAN Card Information Center")
-
     with st.sidebar:
+        openai_api = st.text_input(
+            "OpenAI API Key",
+            key="openai_key",
+            type="password",
+            on_change=load_documents,
+        )
         st.selectbox(
             "Select Document",
             retrieve_documents(),
@@ -153,7 +142,7 @@ def main():
     question_input = st.text_input("Enter your question", "")
     input_is_valid = question_input != ""
 
-    if input_is_valid and question_input and not open_api_key:
+    if input_is_valid and question_input and not openai_api:
         st.info("Please add your OpenAI API key to continue.")
 
     col1, col2 = st.columns(2)
@@ -167,10 +156,6 @@ def main():
         )
     with col2:
         temperature = st.slider("Temperature", min_value=0.0, max_value=1.0, step=0.01)
-    # with col3:
-    #     max_tokens = st.slider(
-    #         "Max Tokens to Generate", min_value=2, step=1, max_value=1024, value=256
-    #     )
 
     if st.button("Run", disabled=(not input_is_valid), type="primary"):
         process_question_as_text(
@@ -178,7 +163,6 @@ def main():
             question_input,
             number_of_documents_to_review,
             temperature,
-            max_tokens,
         )
 
 
