@@ -1,0 +1,14 @@
+cohere
+qdrant-client
+streamlit
+openai
+tiktoken
+pandas
+python-dotenv
+langchain
+transformers
+chromadb
+pypdfium2
+jinja2
+openpyxl
+faiss-cpu
