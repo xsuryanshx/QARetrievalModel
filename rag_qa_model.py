@@ -16,20 +16,18 @@ from langchain.chains import RetrievalQA
 from langchain.document_loaders import TextLoader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.llms import OpenAI
-from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from langchain.callbacks import get_openai_callback
 from tqdm import tqdm
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import (
-    LLMChainExtractor,
-    EmbeddingsFilter,
-)
+from rouge_score import rouge_scorer
 import re
 
 
 class RAG_QA_Model:
+    """QA Model Class"""
+
     def __init__(self) -> None:
+        """initializer"""
         _ = load_dotenv(find_dotenv())
         self.__db = None
         self.__documents = []
@@ -37,9 +35,16 @@ class RAG_QA_Model:
     def load_document(
         self,
         selected_document: str,
-        vector_storage_type: str,
+        model_type: str,
         openai_key: str = os.getenv("OPENAI_API_KEY"),
     ):
+        """load documents
+
+        Args:
+            selected_document (str): name of selected document
+            model_type (str): model type that defines the vector storage type
+            openai_key (str, optional): Defaults to os.getenv("OPENAI_API_KEY")
+        """
         data_path = Path("./files").resolve()
         with open(Path("./document_config.json").resolve(), "r") as f:
             document_config = json.load(f)
@@ -61,10 +66,10 @@ class RAG_QA_Model:
 
         # Use the Open AI Embeddings
 
-        if vector_storage_type == "Normal":
+        if model_type == "Normal":
             embeddings = OpenAIEmbeddings()
             self.__db = Chroma.from_documents(self.__documents, embeddings)
-        elif vector_storage_type == "Multilingual":
+        elif model_type == "Multilingual":
             embeddings = CohereEmbeddings(
                 model="multilingual-22-12",
                 cohere_api_key=os.getenv("COHERE_API_KEY"),
@@ -85,6 +90,16 @@ class RAG_QA_Model:
         number_of_documents_to_review: int,
         temperature: float,
     ) -> Tuple[pd.DataFrame, float]:
+        """model used to answer question based on input question and parameters
+
+        Args:
+            question (str): question in string
+            number_of_documents_to_review (int): number of most chunks of text used to answer
+            temperature (float): temperature
+
+        Returns:
+            Tuple[pd.DataFrame, float]: dataframe of answer
+        """
         retriever = self.__db.as_retriever(
             search_type="similarity",
             search_kwargs={"k": number_of_documents_to_review},
@@ -106,10 +121,15 @@ class RAG_QA_Model:
         end_time = time.time()
         total_request_time = round(end_time - start_time)
 
+        scorer = rouge_scorer.RougeScorer(["rouge1"], use_stemmer=True)
+        scores = scorer.score(result["result"], similar_documents[0].page_content)
+
+        # scores["rouge1"].fmeasure
         resulting_df = pd.DataFrame(
             {
                 "Question": [question],
                 "Answer": [result["result"]],
+                "Score": [scores["rouge1"].fmeasure],
                 "Request Time (s)": [total_request_time],
                 "Total Cost ($)": [cb.total_cost],
                 "Total Tokens": [cb.total_tokens],
@@ -120,18 +140,16 @@ class RAG_QA_Model:
 
     @property
     def total_chunks(self):
-        return len(self.__documents)
+        """number of chunks of text made after splitting
 
-    # @property
-    # def openai_api_key(self, openaikey):
-    #     # if openaikey != None:
-    #     #     openai.api_key = openaikey
-    #     # else:
-    #     #     openai.api_key = os.getenv("OPENAI_API_KEY")
-    #     openai.api_key = openaikey
+        Returns:
+            int: number of chunks
+        """
+        return len(self.__documents)
 
     @property
     def prompt_template(self):
+        """Prompt for generating answer."""
         template_format = """
         You are a helpful AI assistant. Use the following pieces of context to answer the question at the end
         Give answer intelligently like a professional, in bullet points.
