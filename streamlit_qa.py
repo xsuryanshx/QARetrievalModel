@@ -16,8 +16,8 @@ def initialize():
     """initializer funcion"""
     if "engine" not in st.session_state:
         st.session_state.engine = RAG_QA_Model()
-    if "vector_storage_type" not in st.session_state:
-        st.session_state.vector_storage_type = "Normal"
+    if "model_type" not in st.session_state:
+        st.session_state.model_type = "Normal"
     if "openai_key" not in st.session_state:
         st.session_state.openai_key = ""
     if "selected_document" not in st.session_state:
@@ -31,7 +31,7 @@ def load_documents():
         with st.spinner("Loading Model ..."):
             st.session_state.engine.load_document(
                 st.session_state.selected_document,
-                st.session_state.vector_storage_type,
+                st.session_state.model_type,
                 st.session_state.openai_key,
             )
             st.session_state.total_pages_in_document = (
@@ -173,7 +173,7 @@ def main():
         st.radio(
             "Model Type:",
             ("Normal", "Multilingual"),
-            key="vector_storage_type",
+            key="model_type",
             on_change=load_documents,
             help="""The Normal Model uses ChromaDB vector storage and OpenAI embeddings which \
                 is great for QA Retrieval in English Language. \n The Multilingual Model uses \
