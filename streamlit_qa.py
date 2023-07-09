@@ -195,7 +195,7 @@ def main():
     with col1:
         run_button = st.button("Run", disabled=(not input_is_valid), type="primary")
     with col2:
-        speak_button = st.button("Speak", type="primary")
+        speak_button = st.button("Speak", type="secondary")
 
     col3, col4 = st.columns(2)
     with col3:
