@@ -191,8 +191,14 @@ def main():
     else:
         load_documents()
 
-    col1, col2 = st.columns(2)
+    col1, col2, _ = st.columns([1, 1, 8])
     with col1:
+        run_button = st.button("Run", disabled=(not input_is_valid), type="primary")
+    with col2:
+        speak_button = st.button("Speak", type="primary")
+
+    col3, col4 = st.columns(2)
+    with col3:
         number_of_documents_to_review = st.slider(
             "Number of Chunks of text to use",
             min_value=1,
@@ -200,10 +206,10 @@ def main():
             step=1,
             max_value=st.session_state.total_pages_in_document,
         )
-    with col2:
+    with col4:
         temperature = st.slider("Temperature", min_value=0.0, max_value=1.0, step=0.01)
 
-    if st.button("Run", disabled=(not input_is_valid), type="primary"):
+    if run_button:
         process_question_as_text(
             st.session_state.engine,
             question_input,
@@ -211,10 +217,10 @@ def main():
             temperature,
         )
 
-    if st.button("Speak"):
+    if speak_button:
         with st.spinner("Listening...."):
             question_input = st.text_input("Asked question", f"{speech_recognition()}?")
-            generated_answer = process_question_as_text(
+            process_question_as_text(
                 st.session_state.engine,
                 question_input,
                 number_of_documents_to_review,

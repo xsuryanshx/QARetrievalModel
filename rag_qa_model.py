@@ -124,7 +124,6 @@ class RAG_QA_Model:
         scorer = rouge_scorer.RougeScorer(["rouge1"], use_stemmer=True)
         scores = scorer.score(result["result"], similar_documents[0].page_content)
 
-        # scores["rouge1"].fmeasure
         resulting_df = pd.DataFrame(
             {
                 "Question": [question],
