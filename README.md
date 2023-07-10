@@ -1,7 +1,7 @@
 # QARetrieval Model 
 AI Question Answering model that answers the important questions related to PAN card. 
 
-![image](https://github.com/xsuryanshx/QARetrievalModel/assets/51471876/0e296aea-074e-454b-a1f6-802bafab858e)
+![image](https://github.com/xsuryanshx/QARetrievalModel/assets/51471876/4724098b-1d56-4055-a52c-9bbebf91c857)
 
 
 ## Features
