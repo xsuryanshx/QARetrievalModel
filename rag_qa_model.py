@@ -36,7 +36,6 @@ class RAG_QA_Model:
         self,
         selected_document: str,
         model_type: str,
-        openai_key: str = os.getenv("OPENAI_API_KEY"),
     ):
         """load documents
 
@@ -51,8 +50,6 @@ class RAG_QA_Model:
         if selected_document in document_config:
             file_prefix = document_config[selected_document]["document"]
             path_to_file = Path(data_path, file_prefix).as_posix()
-
-        openai.api_key = openai_key
 
         # Load the text document
         loader = TextLoader(path_to_file, encoding="utf8")
@@ -84,6 +81,39 @@ class RAG_QA_Model:
         else:
             raise ValueError("Invalid vector storage type.")
 
+    def is_valid_api_key(self, api_key: str) -> bool:
+        """
+        Determine whether the input api key is valid.
+
+        Parameters
+        ----------
+        api_key: str
+            An API key
+
+        Returns
+        -------
+        api_key_is_valid: bool
+            Whether the API key is valid or not
+        """
+        try:
+            test = OpenAI(openai_api_key=api_key, max_tokens=2)
+            test("test")
+        except openai.error.AuthenticationError:
+            return False
+        else:
+            return True
+
+    def set_api_key(self, api_key: str) -> None:
+        """
+        Set the api key.
+
+        Parameters
+        ----------
+        api_key: str
+            An API key
+        """
+        openai.api_key = api_key
+
     def answer_questions(
         self,
         question: str,
@@ -108,7 +138,7 @@ class RAG_QA_Model:
         qa_chain = RetrievalQA.from_chain_type(
             llm=OpenAI(temperature=temperature),
             chain_type="stuff",
-            retriever=self.__db.as_retriever(),
+            retriever=retriever,
             chain_type_kwargs={"prompt": self.prompt_template},
         )
         start_time = time.time()
@@ -150,7 +180,7 @@ class RAG_QA_Model:
     def prompt_template(self):
         """Prompt for generating answer."""
         template_format = """
-        You are a helpful AI assistant. Use the following pieces of context to answer the question at the end
+        You are a helpful AI assistant. Use the following pieces of context to answer the question at the end.
         Give answer intelligently like a professional, in bullet points.
         If you don't know the answer, just say that you don't know. Don't try to make up an answer.
 

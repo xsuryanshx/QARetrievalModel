@@ -7,6 +7,7 @@ import pandas as pd
 import os
 from io import BytesIO
 from gtts import gTTS
+from dotenv import load_dotenv, find_dotenv
 
 
 st.set_page_config(page_title="QA Model", page_icon="🔎", layout="wide")
@@ -18,10 +19,22 @@ def initialize():
         st.session_state.engine = RAG_QA_Model()
     if "model_type" not in st.session_state:
         st.session_state.model_type = "Normal"
-    if "openai_key" not in st.session_state:
-        st.session_state.openai_key = ""
+    if "api_key_changed" not in st.session_state:
+        st.session_state.api_key_changed = True
     if "selected_document" not in st.session_state:
         st.session_state.selected_document = "Knowledge Document - Pan Card"
+    if "api_key" not in st.session_state:
+        _ = load_dotenv(find_dotenv())
+        api_env_key = os.getenv("OPENAI_API_KEY")
+        if api_env_key is not None and st.session_state.engine.is_valid_api_key(
+            api_env_key
+        ):
+            st.session_state.engine.set_api_key(api_env_key)
+            st.session_state.api_key = ""
+            st.session_state.api_key_is_valid = True
+        else:
+            st.session_state.api_key = ""
+            st.session_state.api_key_is_valid = False
         load_documents()
 
 
@@ -32,7 +45,6 @@ def load_documents():
             st.session_state.engine.load_document(
                 st.session_state.selected_document,
                 st.session_state.model_type,
-                st.session_state.openai_key,
             )
             st.session_state.total_pages_in_document = (
                 st.session_state.engine.total_chunks
@@ -137,7 +149,7 @@ def show_df_as_table(df: pd.DataFrame):
     st.table(df.style.set_table_styles(styles))
 
 
-def speech_output(output):
+def speech_output(output: str):
     """Returns a audio response of the answer.
     Args:
         output (str): string
@@ -150,16 +162,44 @@ def speech_output(output):
         st.audio(sound)
 
 
+def api_key_changed():
+    """Run when the api key has changed and we need to rerun the validation check."""
+    del st.session_state.api_key_changed
+
+
+def validate_api_key():
+    """Validate the api key using OpenAI."""
+    if st.session_state.api_key:
+        with st.spinner("Validating API Key..."):
+            if st.session_state.engine.is_valid_api_key(st.session_state.api_key):
+                st.session_state.engine.set_api_key(st.session_state.api_key)
+                st.session_state.api_key_is_valid = True
+            else:
+                st.info(
+                    "The API key you entered is not valid. Please enter a valid API key before proceeding."
+                )
+                st.session_state.api_key_is_valid = False
+    else:
+        st.session_state.api_key_is_valid = False
+
+    st.session_state.api_key_changed = False
+
+
 def main():
     """main function"""
     st.title("PAN Card Information Center")
     with st.sidebar:
-        openai_api = st.text_input(
+        st.text_input(
             "OpenAI API Key",
-            key="openai_key",
             type="password",
-            on_change=load_documents,
+            placeholder="Paste OpenAI API key",
+            help="Find your API key from https://platform.openai.com/account/api-keys",
+            key="api_key",
+            on_change=api_key_changed,
         )
+        if st.session_state.api_key_changed:
+            validate_api_key()
+
         st.write(
             "Note: Please input your OpenAI key. If you don't have that then please\
             limit to use the platform to 2-3 tries as it uses my current API key."
@@ -180,14 +220,14 @@ def main():
                 Qdrant vector storage and Cohere embeddings which perform great for QA Retrieval \
                 in Multiple Languages.""",
         )
-        "[View the source code](https://github.com/xsuryanshx/QARetrievalModel/tree/develop)"
-        "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/xsuryanshx/QARetrievalModel/tree/develop?quickstart=1)"
+        "[View the source code](https://github.com/xsuryanshx/QARetrievalModel/)"
+        "[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/xsuryanshx/QARetrievalModel/?quickstart=1)"
 
     question_input = st.text_input("Enter your question", "")
     input_is_valid = question_input != ""
 
-    if input_is_valid and question_input and not openai_api:
-        st.info("Please add your OpenAI API key to continue.")
+    if input_is_valid and st.session_state.api_key_is_valid:
+        st.info("Please add your correct OpenAI API key to continue.")
     else:
         load_documents()
 
