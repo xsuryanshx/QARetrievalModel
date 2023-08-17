@@ -7,7 +7,7 @@ pandas
 python-dotenv
 langchain
 transformers
-chromadb
+chromadb==0.3.29
 openpyxl
 SpeechRecognition
 pyaudio
