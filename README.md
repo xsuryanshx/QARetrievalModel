@@ -3,7 +3,7 @@ AI Question Answering model that answers the important questions related to PAN 
 
 ![image](https://github.com/xsuryanshx/QARetrievalModel/assets/51471876/4724098b-1d56-4055-a52c-9bbebf91c857)
 
-
+Deployed App (Try it out!) - https://pan-card-information.streamlit.app/
 ## Features
 Incorporated multiple features in this update including :
 *  Multilinguality -  for asking questions in different languages
